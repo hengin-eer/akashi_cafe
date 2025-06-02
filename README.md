@@ -86,7 +86,19 @@ git switch feature/create-menulist-page
 - `feature/`: 新機能の追加
 - `fix/`: バグ修正
 
-### Python関連の依存関係が変更されたとき
+### python関連のコマンド
+#### 仮想環境の切り替え
+Pythonの仮想環境を切り替える場合は、以下のコマンドを使用する。
+```bash
+. .venv/bin/activate
+```
+
+対して仮想環境を終了する場合は、以下のコマンドを使用する。
+```bash
+deactivate
+```
+
+#### Python関連の依存関係が変更されたとき
 Python関連の依存関係は`uv`を使用して管理している。
 よって、以下のコマンドで依存関係を更新する。
 ```bash
