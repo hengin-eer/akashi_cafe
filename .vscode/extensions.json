@@ -1,0 +1,15 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "ms-python.black-formatter",
+    "donjayamanne.githistory",
+    "visualstudioexptteam.vscodeintellicode",
+    "visualstudioexptteam.intellicode-api-usage-examples",
+    "ms-python.isort",
+    "formulahendry.auto-rename-tag",
+    "svelte.svelte-vscode",
+    "seatonjiang.gitmoji-vscode"
+  ]
+}
