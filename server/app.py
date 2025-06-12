@@ -9,8 +9,8 @@ def create_app():
     db_config = {
         "host": "localhost",
         "database": "akashi_cafe",
-        "user": dotenv.get_key(".env.local", "DB_USER"),
-        "password": dotenv.get_key(".env.local", "DB_PASSWORD"),
+        "user": dotenv.get_key(".env", "DB_USER"),
+        "password": dotenv.get_key(".env", "DB_PASSWORD"),
     }
 
     def read_sql(file_path):
