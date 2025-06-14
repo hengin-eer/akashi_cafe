@@ -3,14 +3,16 @@ import dotenv
 import psycopg2
 from pathlib import Path
 
+
 def create_app():
     app = Flask(__name__)
 
     db_config = {
         "host": "localhost",
         "database": "akashi_cafe",
-        "user": dotenv.get_key(".env", "DB_USER"),
-        "password": dotenv.get_key(".env", "DB_PASSWORD"),
+        "port": 5432,
+        "user": "root",
+        "password": "team4",
     }
 
     def read_sql(file_path):
@@ -39,7 +41,7 @@ def create_app():
             sql = read_sql("sql/get_accounts.sql")
             cursor.execute(sql)
             accounts = cursor.fetchall()
-            account_list = [{"id": acc[0], "name": acc[1], "balance": acc[2]} for acc in accounts]
+            account_list = [{"id": acc[0], "name": acc[1]} for acc in accounts]
             return jsonify(account_list)
         except Exception as e:
             return jsonify({"error": str(e)}), 500

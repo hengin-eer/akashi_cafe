@@ -106,3 +106,31 @@ uv sync
 ```
 
 **忘れちゃう人がいると思うんで、`uv sync`が必要な場合はPRかLINEのグループに書いておくと良いよ。**
+
+### Docker関連のコマンド
+今回Dockerを使用してPostgreSQLを立ち上げている。
+Dockerコンテナの起動・停止、PostgreSQLへの接続方法などをまとめる。
+
+#### Dockerコンテナの起動
+Dockerコンテナを起動する場合は、以下のコマンドを使用する。
+```bash
+docker compose up -d
+```
+#### Dockerコンテナの停止
+Dockerコンテナを停止する場合は、以下のコマンドを使用する。
+```bash
+docker compose down
+```
+#### 起動したPostgreSQLに接続する
+Docker
+PostgreSQLに接続する場合は、以下のコマンドを使用する。
+```bash
+docker exec -it postgres psql -U root akashi_cafe
+```
+#### Dockerコンテナのログを確認する
+稀にDockerコンテナが起動しないことがある。
+その場合は、コンテナのログを確認して原因を特定する必要がある。
+Dockerコンテナのログを確認する場合は、以下のコマンドを使用する。
+```bash
+docker compose logs -f
+```
