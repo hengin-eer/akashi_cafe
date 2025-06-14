@@ -33,8 +33,77 @@ def create_app():
         ]
         return jsonify(dummy_menu)
 
-    @app.route("/account")
-    def account():
+    @app.route("/menu/permanent/<menu_id>")
+    def permanent_menu_by_id(menu_id):
+        """
+        常設メニューのレコードをIDで取得するエンドポイント
+        """
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        try:
+            sql = read_sql("sql/get_permanent_menu_by_id.sql")
+            cursor.execute(sql, [menu_id])
+            menu_item = cursor.fetchone()
+            if menu_item:
+                menu_data = {
+                    "id": menu_item[0],
+                    "type": menu_item[1],
+                    "name": menu_item[2],
+                    "price": menu_item[3],
+                    "energy": menu_item[4],
+                    "protein": float(menu_item[5]),
+                    "fat": float(menu_item[6]),
+                    "carb": float(menu_item[7]),
+                    "salt": float(menu_item[8]),
+                    "allergens": menu_item[9],
+                }
+                return jsonify(menu_data)
+            else:
+                return jsonify({"error": "Menu item not found"}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        finally:
+            cursor.close()
+            conn.close()
+
+    @app.route("/menu/permanent/all")
+    def permanent_menu_all():
+        """
+        常設メニューのレコード全件を取得するエンドポイント
+        """
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        try:
+            sql = read_sql("sql/get_all_permanent_menus.sql")
+            cursor.execute(sql)
+            menu_items = cursor.fetchall()
+            menu_list = [
+                {
+                    "id": item[0],
+                    "type": item[1],
+                    "name": item[2],
+                    "price": item[3],
+                    "energy": item[4],
+                    "protein": float(item[5]),
+                    "fat": float(item[6]),
+                    "carb": float(item[7]),
+                    "salt": float(item[8]),
+                    "allergens": item[9],
+                }
+                for item in menu_items
+            ]
+            return jsonify(menu_list)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        finally:
+            cursor.close()
+            conn.close()
+
+    @app.route("/accounts")
+    def accounts():
+        """
+        全アカウント情報を取得するエンドポイント
+        """
         conn = psycopg2.connect(**db_config)
         cursor = conn.cursor()
         try:
