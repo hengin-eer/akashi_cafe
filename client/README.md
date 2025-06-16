@@ -1,38 +1,41 @@
-# sv
+## 開発時のコマンド集
+開発時に必要なコマンド・作業の流れを以下にまとめる。
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
-
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
+### そもそも話
+これから紹介するコマンドたちはフロントエンド開発のためのものである。
+フロントエンドで作業してもらうには `/client` フォルダーに移動してもらう必要があるので、きちんとターミナル上で自分がどこにいるのか把握しておくこと。
 
 ```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+cd client
 ```
 
-## Developing
+### ⚠️注意
+github上のデータを取得する `git pull` コマンドを行う時は、 `/akashi_cafe/client` ではなく、 `/akashi_cafe` の位置で行うこと。
+`/akashi_cafe/client` から戻るには、ターミナル上で以下を実行する。
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+```bash
+cd ../
+```
 
+### 開発サーバーの立ち上げ
+これを行うことでSvelteファイルで作成したUIをブラウザ上で確認することが出来る。
+そのためには以下コマンドを実行する。
 ```bash
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
-
-To create a production version of your app:
-
+### パッケージの更新
+誰かが使用するパッケージを更新した場合、ローカル環境のものも更新する必要がある。
+そのためには以下を実行する。
 ```bash
-npm run build
+npm i
 ```
 
-You can preview the production build with `npm run preview`.
+## 便利なサイト集
+### Iconify | Phosphhor Icon Set
+[Phosphor icon set \- 9072 open source icons \- Iconify](https://icon-sets.iconify.design/ph/)
+UI構築に使うアイコンセット。
+使用したいアイコンを検索して、以下画像のようにSvelte用のコードをコピーする。
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+![alt text](./docs/image.png)
+
