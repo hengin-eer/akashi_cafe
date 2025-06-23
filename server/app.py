@@ -1,11 +1,13 @@
 from flask import Flask, jsonify
-import dotenv
 import psycopg2
 from pathlib import Path
+from flask_cors import CORS
+from lib.parse_pg_enum_array import parse_pg_enum_array
 
 
 def create_app():
     app = Flask(__name__)
+    CORS(app, origins=["http://localhost:3000"])
 
     db_config = {
         "host": "localhost",
@@ -55,7 +57,7 @@ def create_app():
                     "fat": float(menu_item[6]),
                     "carb": float(menu_item[7]),
                     "salt": float(menu_item[8]),
-                    "allergens": menu_item[9],
+                    "allergens": parse_pg_enum_array(menu_item[9]),
                 }
                 return jsonify(menu_data)
             else:
@@ -88,7 +90,7 @@ def create_app():
                     "fat": float(item[6]),
                     "carb": float(item[7]),
                     "salt": float(item[8]),
-                    "allergens": item[9],
+                    "allergens": parse_pg_enum_array(item[9]),
                 }
                 for item in menu_items
             ]
