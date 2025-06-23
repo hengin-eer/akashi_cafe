@@ -7,7 +7,7 @@ from lib.parse_pg_enum_array import parse_pg_enum_array
 
 def create_app():
     app = Flask(__name__)
-    CORS(app, origins=["http://localhost:3000"])
+    CORS(app, origins=["http://localhost:3000", "http://localhost:4173"])
 
     db_config = {
         "host": "localhost",
