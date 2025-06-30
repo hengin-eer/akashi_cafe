@@ -5,7 +5,7 @@
   const selectedDate = data.date;
 
   const today = new Date();
-  const Month = today.getMonth() + 1;
+  const thisMonth = today.getMonth() + 1;
 
   // TODO: selectedDateを使って本番データを取得する
 
@@ -15,42 +15,36 @@
       price: 300,
       allergen: true,
       soldOut: true,
-      caution: false,
     },
     {
       name: "ポークカツカレー",
       price: 380,
       allergen: true,
       soldOut: false,
-      caution: true,
     },
     {
       name: "親子丼",
       price: 350,
       allergen: true,
       soldOut: false,
-      caution: false,
     },
     {
       name: "かつ丼",
       price: 350,
       allergen: true,
       soldOut: false,
-      caution: false,
     },
     {
       name: "醤油らーめん",
       price: 250,
       allergen: true,
       soldOut: false,
-      caution: false,
     },
     {
       name: "かけうどん・そば",
       price: 200,
       allergen: true,
       soldOut: false,
-      caution: false,
     },
   ];
 </script>
@@ -58,7 +52,7 @@
 <div class="container">
   <h1>明石高専 学生食堂システム</h1>
   <p style="font-weight: bold; font-size: 1.25rem;">
-    {Month}月{selectedDate ? selectedDate : "?"}日のメニュー
+    {thisMonth}月{selectedDate ? selectedDate : "?"}日のメニュー
   </p>
 
   <p style="font-size: 0.85rem; color: #666;">
@@ -73,11 +67,6 @@
             <span class="badge red">
               <Icon icon="ph:x-circle" width="16" />
               売り切れ
-            </span>
-          {:else if menu.caution}
-            <span class="badge yellow">
-              <Icon icon="ph:warning-circle" width="16" />
-              注意
             </span>
           {/if}
           {#if menu.allergen}
@@ -123,7 +112,7 @@
   }
 
   .menu-card.sold-out {
-    background: #ddd;
+    background: #c3bebe;
   }
 
   .badge {
@@ -140,11 +129,6 @@
   .badge.red {
     background: #e74c3c;
     color: white;
-  }
-
-  .badge.yellow {
-    background: #f1c40f;
-    color: black;
   }
 
   .price {
