@@ -2,10 +2,22 @@
   import Icon from "@iconify/svelte";
 
   export let data;
-  const selectedDate = data.date;
-
   const today = new Date();
-  const thisMonth = today.getMonth() + 1;
+  const year = today.getFullYear();
+  const month = today.getMonth();
+
+  const monthStr = String(month + 1).padStart(2, "0");
+  const minDate = `${year}-${monthStr}-01`;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const maxDate = `${year}-${monthStr}-${String(lastDay).padStart(2, "0")}`;
+
+  let selectedDate = today.toISOString().split("T")[0];
+
+  function onDateChange(e) {
+    selectedDate = e.target.value;
+  }
+
+  const thisMonth = Number(monthStr);
 
   // TODO: selectedDateを使って本番データを取得する
 
@@ -87,12 +99,36 @@
   function closeModal() {
     selectedMenu = null;
   }
+
+  //適当に３にしてるけど動的に変更する必要あり
+  let postCount = 3;
+
+  //１とか１０以上やったらミスやいたずらの可能性があるからこうした
+  function getReliability(count) {
+    if (count === 1 || count >= 10) {
+      return "低い";
+    } else if (count >= 2 && count <= 9) {
+      return "高い";
+    }
+    return "低い";
+  }
+
+  $: reliability = getReliability(postCount);
 </script>
 
 <div class="container">
   <h1>明石高専 学生食堂システム</h1>
+  <label for="menu-date">日付を選択：</label>
+  <input
+    id="menu-date"
+    type="date"
+    bind:value={selectedDate}
+    min={minDate}
+    max={maxDate}
+    on:change={onDateChange}
+  />
   <p style="font-weight: bold; font-size: 1.25rem;">
-    {thisMonth}月{selectedDate ? selectedDate : "?"}日のメニュー
+    {thisMonth}月{selectedDate.split("-")[2]}日のメニュー
   </p>
 
   <p style="font-size: 0.85rem; color: #666;">
@@ -140,7 +176,14 @@
       <div class="sold-out-info">
         <p><strong>売り切れ情報</strong></p>
         <p>投稿数：3件</p>
-        <p>信頼性：高い</p>
+        <p
+          style="color: {reliability === '高い'
+            ? 'red'
+            : 'black'}; font-weight: bold;"
+        >
+          信頼性：{reliability}
+        </p>
+
         <button class="send-button">売り切れデータを送信</button>
       </div>
 
@@ -222,7 +265,7 @@
   .modal {
     background: #fff;
     border-radius: 16px;
-    padding: 1.5rem;
+    padding: 3rem;
     max-width: 90%;
     width: 400px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
