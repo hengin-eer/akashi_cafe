@@ -35,6 +35,40 @@ def create_app():
         ]
         return jsonify(dummy_menu)
 
+    @app.route("/menu/<date>")
+    def menu_by_day(date):
+        """
+        日付を指定してその日のメニューを取得するエンドポイント
+        """
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        try:
+            sql = read_sql("sql/get_menu_by_day.sql")
+            cursor.execute(sql, [date])
+            menu_items = cursor.fetchall()
+            menu_list = [
+                {
+                    "id": item[0],
+                    "date": item[1],
+                    "type": item[2],
+                    "name": item[3],
+                    "price": item[4],
+                    "energy": item[5],
+                    "protein": float(item[6]),
+                    "fat": float(item[7]),
+                    "carb": float(item[8]),
+                    "salt": float(item[9]),
+                    "allergens": parse_pg_enum_array(item[10]),
+                }
+                for item in menu_items
+            ]
+            return jsonify(menu_list)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        finally:
+            cursor.close()
+            conn.close()
+
     @app.route("/menu/permanent/<menu_id>")
     def permanent_menu_by_id(menu_id):
         """
