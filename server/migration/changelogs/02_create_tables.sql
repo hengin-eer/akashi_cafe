@@ -5,6 +5,7 @@ create table accounts (
 
 -- 月替わりのメニュー
 create table menu (
+  id varchar(6) primary key, -- 固有ID
   date date not null, -- 日付
   type menu_type not null, -- メニューの種類
   name varchar(50) not null, -- メニュー名
@@ -32,20 +33,21 @@ create table permanent_menu (
   allergens menu_allergens[] -- アレルゲン
 );
 
--- create table soldouts (
---   id uuid primary key, -- UUID
---   menu_class menu_classification not null, -- メニュー：日替わり or 常設
---   menu_date date, -- 日替わりの場合のみ使用
---   daily_menu_name varchar(50), -- 日替わりの場合のメニュー名（permanentならNULL）
---   permanent_menu_id int, -- permanent_menuの外部キー（dailyならNULL）
+-- NOTE: 常設メニューはテーブル上でいつ売られている、という情報を持たない
+-- そのため、いつ売られているメニューを、いつ売り切れ報告がなされたか、で判断する必要がある
+-- よって売り切れ情報を登録する際には当日のみの操作に限定する
+create table permanent_menu_soldout (
+  permanent_menu_id varchar(6) primary key, -- permanent_menuの外部キー
+  soldout_at timestamp not null default current_timestamp, -- 売り切れ日時
+  reviewers varchar(6)[] not null, -- 売り切れを確認した学籍番号の配列
+  unti_reviewers varchar(6)[] not null, -- 売り切れていないことを確認した学籍番号の配列
+  constraint fk_permanent_menu foreign key (permanent_menu_id) references permanent_menu(id)
+)
 
---   created_at timestamp not null default current_timestamp,
---   soldout_reviewers varchar(6)[] not null, -- 学籍番号の配列
---   unsoldout_reviewers varchar(6)[] not null, -- 学籍番号の配列
-
---   constraint fk_permanent_menu foreign key (permanent_menu_id) references permanent_menu(id),
---   constraint check_menu_ref check (
---     (menu_type = 'daily' and menu_date is not null and daily_menu_name is not null and permanent_menu_id is null) or
---     (menu_type = 'permanent' and permanent_menu_id is not null and menu_date is null and daily_menu_name is null)
---   )
--- );
+create table daily_menu_soldout (
+  daily_menu_id varchar(6) primary key, -- 日替わりメニューのID
+  soldout_at timestamp not null default current_timestamp, -- 売り切れ日時
+  reviewers varchar(6)[] not null, -- 売り切れを確認した学籍番号の配列
+  unti_reviewers varchar(6)[] not null, -- 売り切れていないことを確認した学籍番号の配列
+  constraint fk_daily_menu foreign key (daily_menu_id) references menu(id)
+)
