@@ -49,7 +49,7 @@ def create_app():
             menu_list = [
                 {
                     "id": item[0],
-                    "date": item[1],
+                    "date": item[1].isoformat(),
                     "type": item[2],
                     "name": item[3],
                     "price": item[4],
