@@ -42,7 +42,7 @@ create table permanent_menu_soldout (
   reviewers varchar(6)[] not null, -- 売り切れを確認した学籍番号の配列
   unti_reviewers varchar(6)[] not null, -- 売り切れていないことを確認した学籍番号の配列
   constraint fk_permanent_menu foreign key (permanent_menu_id) references permanent_menu(id)
-)
+);
 
 create table daily_menu_soldout (
   daily_menu_id varchar(6) primary key, -- 日替わりメニューのID
@@ -50,4 +50,4 @@ create table daily_menu_soldout (
   reviewers varchar(6)[] not null, -- 売り切れを確認した学籍番号の配列
   unti_reviewers varchar(6)[] not null, -- 売り切れていないことを確認した学籍番号の配列
   constraint fk_daily_menu foreign key (daily_menu_id) references menu(id)
-)
+);
