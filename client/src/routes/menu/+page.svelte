@@ -1,7 +1,6 @@
 <script>
   import Icon from "@iconify/svelte";
 
-  export let data;
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();
