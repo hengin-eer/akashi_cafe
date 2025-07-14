@@ -1,19 +1,16 @@
+<script>
+  const currentMonth = new Date().getMonth() + 1;
+</script>
+
+<!-- TODO: コンポーネントとして共通化せねば -->
 <header class="header">明石高専 学生食堂システム</header>
 
 <main class="main">
   <section class="card">
-    <h2>5月のメニュー</h2>
+    <h2>{currentMonth}月のメニュー</h2>
     <p>日付や値段で1か月のメニューが絞り込める！</p>
     <button>
       <a href="/menu"> メニューの日付を選択する </a>
-    </button>
-  </section>
-
-  <section class="card">
-    <h2>本日のお品書き</h2>
-    <p>メニュー情報、最新の売り切れ状況を今すぐチェック！</p>
-    <button>
-      <a href="/menu?today">今日のメニュー</a>
     </button>
   </section>
 
@@ -27,7 +24,6 @@
 </main>
 
 <style>
-  /* ヘッダー */
   .header {
     background-color: #f1f0f6;
     padding: 20px;
@@ -37,7 +33,6 @@
     border-bottom: 1px solid #ddd;
   }
 
-  /* メインエリア */
   .main {
     display: flex;
     flex-direction: column;
@@ -45,7 +40,6 @@
     padding: 24px 16px;
   }
 
-  /* 各カード */
   .card {
     background-color: #f1f0f6;
     border-radius: 16px;
@@ -67,7 +61,6 @@
     margin-bottom: 16px;
   }
 
-  /* ボタン */
   .card button {
     background-color: white;
     border: 1px solid #ccc;

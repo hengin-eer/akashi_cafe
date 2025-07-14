@@ -15,8 +15,7 @@ create table menu (
   fat DECIMAL(3, 1) not null, -- 脂質量
   carb DECIMAL(4, 1) not null, -- 炭水化物量
   salt DECIMAL(2, 1) not null, -- 食塩相当量
-  allergens menu_allergens[], -- アレルゲン
-  tags menu_tags -- メニューのタグ
+  allergens menu_allergens[] -- アレルゲン
 );
 
 -- 常設メニュー
