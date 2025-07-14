@@ -38,27 +38,38 @@ def create_app():
     @app.route("/menu/<date>")
     def menu_by_day(date):
         """
-        日付を指定してその日のメニューを取得するエンドポイント
+        日付を指定してその日のメニュー全てを取得するエンドポイント
         """
         conn = psycopg2.connect(**db_config)
         cursor = conn.cursor()
         try:
-            sql = read_sql("sql/get_menu_by_day.sql")
-            cursor.execute(sql, [date])
-            menu_items = cursor.fetchall()
+            # TODO: 常設メニューの取得と合わせて一覧表示ができる形にする
+            doday_sql = read_sql("sql/get_menus_by_date.sql")
+            permanent_sql = read_sql("sql/get_all_permanent_menus.sql")
+            # 日替わりメニューの取得
+            cursor.execute(doday_sql, [date])
+            today_menu_items = cursor.fetchall()
+            # 常設メニューの取得
+            """
+            TODO: 常設メニューの内、1つのラーメンを残して残りを除去する
+            あとで設定画面を作る必要がある～
+            が、あとまわしや（デモ時までに対応する必要はない）
+            """
+            cursor.execute(permanent_sql)
+            permanent_menu_items = cursor.fetchall()
+            menu_items = today_menu_items + permanent_menu_items
             menu_list = [
                 {
                     "id": item[0],
-                    "date": item[1].isoformat(),
-                    "type": item[2],
-                    "name": item[3],
-                    "price": item[4],
-                    "energy": item[5],
-                    "protein": float(item[6]),
-                    "fat": float(item[7]),
-                    "carb": float(item[8]),
-                    "salt": float(item[9]),
-                    "allergens": parse_pg_enum_array(item[10]),
+                    "type": item[1],
+                    "name": item[2],
+                    "price": item[3],
+                    "energy": item[4],
+                    "protein": float(item[5]),
+                    "fat": float(item[6]),
+                    "carb": float(item[7]),
+                    "salt": float(item[8]),
+                    "allergens": parse_pg_enum_array(item[9]),
                 }
                 for item in menu_items
             ]
