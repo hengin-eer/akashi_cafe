@@ -1,6 +1,7 @@
 <script>
   import Icon from "@iconify/svelte";
   import { onMount } from "svelte";
+  // import { isHoliday } from "holiday-jp-since";
 
   const today = new Date();
   const year = today.getFullYear();
@@ -42,27 +43,15 @@
     return dayOfWeek === 0 || dayOfWeek === 6; // 0=日曜日, 6=土曜日
   }
 
-  // 祝日判定（簡易版 - 実際にはより詳細な祝日データが必要）
-  function isHoliday(dateString) {
-    // 今回は簡易的に祝日判定を行います
-    // 実際のプロダクションでは祝日APIや祝日ライブラリを使用することを推奨
-    const date = new Date(dateString);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-
-    // 一部の固定祝日の例
-    const holidays = [
-      { month: 1, day: 1 }, // 元日
-      { month: 5, day: 3 }, // 憲法記念日
-      { month: 5, day: 4 }, // みどりの日
-      { month: 5, day: 5 }, // こどもの日
-      { month: 12, day: 23 }, // 天皇誕生日
-    ];
-
-    return holidays.some(
-      (holiday) => holiday.month === month && holiday.day === day,
-    );
-  }
+  /**
+   * NOTE: ライブラリがTSで書かれているため、Svelteでは直接使用できないかもしれない
+   * NOTE: よって現状は祝日対応を凍結
+   * 祝日判定（holiday-jp-sinceライブラリを使用）
+   */
+  // function isJapaneseHoliday(dateString) {
+  //   const date = new Date(dateString);
+  //   return isHoliday(date);
+  // }
 
   // バックエンドAPIからメニューデータを取得
   async function fetchMenus() {
@@ -205,9 +194,10 @@
       {#if isWeekend(selectedDate)}
         <p>{getDayOfWeek(selectedDate)}曜日は</p>
         <p>お休みしています</p>
-      {:else if isHoliday(selectedDate)}
+        <!-- NOTE: Internal Errorになる(TSだから？)ので一旦置いておく -->
+        <!-- {:else if isJapaneseHoliday(selectedDate)}
         <p>祝日なので</p>
-        <p>お休みしています</p>
+        <p>お休みしています</p> -->
       {:else}
         <p>本日は</p>
         <p>お休みしています</p>
