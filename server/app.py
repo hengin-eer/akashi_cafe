@@ -44,7 +44,6 @@ def create_app():
         conn = psycopg2.connect(**db_config)
         cursor = conn.cursor()
         try:
-            # TODO: 常設メニューの取得と合わせて一覧表示ができる形にする
             doday_sql = read_sql("sql/get_menus_by_date.sql")
             permanent_sql = read_sql("sql/get_all_permanent_menus.sql")
             # 日替わりメニューの取得
