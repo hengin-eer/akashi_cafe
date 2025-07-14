@@ -39,6 +39,7 @@ def create_app():
     def menu_by_day(date):
         """
         日付を指定してその日のメニュー全てを取得するエンドポイント
+        営業状態も含めて返す
         """
         conn = psycopg2.connect(**db_config)
         cursor = conn.cursor()
@@ -49,6 +50,20 @@ def create_app():
             # 日替わりメニューの取得
             cursor.execute(doday_sql, [date])
             today_menu_items = cursor.fetchall()
+
+            # 営業状態を判定（日替わりメニューが存在するかどうか）
+            is_open = len(today_menu_items) > 0
+
+            if not is_open:
+                # 営業していない場合
+                return jsonify(
+                    {
+                        "status": "closed",
+                        "message": "本日は営業しておりません",
+                        "menus": [],
+                    }
+                )
+
             # 常設メニューの取得
             """
             TODO: 常設メニューの内、1つのラーメンを残して残りを除去する
@@ -73,7 +88,11 @@ def create_app():
                 }
                 for item in menu_items
             ]
-            return jsonify(menu_list)
+
+            # 営業中の場合
+            return jsonify(
+                {"status": "open", "message": "営業中です", "menus": menu_list}
+            )
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         finally:
