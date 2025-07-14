@@ -1,5 +1,6 @@
 <script>
   import Icon from "@iconify/svelte";
+  import { onMount } from "svelte";
 
   const today = new Date();
   const year = today.getFullYear();
@@ -14,80 +15,59 @@
 
   function onDateChange(e) {
     selectedDate = e.target.value;
+    fetchMenus();
   }
 
   const thisMonth = Number(monthStr);
 
-  // TODO: selectedDateを使って本番データを取得する
+  // APIベースURL
+  const API_BASE_URL = "http://localhost:8000";
 
-  let menus = [
-    {
-      name: "カレーライス(中辛)",
-      price: 300,
-      allergen: true,
-      soldOut: true,
-      energy: 700,
-      protein: 12,
-      fat: 20,
-      carb: 130,
-      salt: 4.0,
-    },
-    {
-      name: "ポークカツカレー",
-      price: 380,
-      allergen: true,
-      soldOut: false,
-      energy: 770,
-      protein: 14.5,
-      fat: 22.3,
-      carb: 131,
-      salt: 4.8,
-    },
-    {
-      name: "親子丼",
-      price: 350,
-      allergen: true,
-      soldOut: false,
-      energy: 550,
-      protein: 18,
-      fat: 12,
-      carb: 80,
-      salt: 2.5,
-    },
-    {
-      name: "かつ丼",
-      price: 350,
-      allergen: true,
-      soldOut: false,
-      energy: 700,
-      protein: 22,
-      fat: 24,
-      carb: 85,
-      salt: 3.0,
-    },
-    {
-      name: "醤油らーめん",
-      price: 250,
-      allergen: true,
-      soldOut: false,
-      energy: 480,
-      protein: 14,
-      fat: 16,
-      carb: 65,
-      salt: 5.5,
-    },
-    {
-      name: "かけうどん・そば",
-      price: 200,
-      allergen: true,
-      soldOut: false,
-      energy: 300,
-      protein: 8,
-      fat: 2,
-      carb: 60,
-      salt: 2.0,
-    },
-  ];
+  let menus = [];
+  let loading = false;
+  let error = null;
+
+  // バックエンドAPIからメニューデータを取得
+  async function fetchMenus() {
+    loading = true;
+    error = null;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/menu/${selectedDate}`);
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // APIレスポンスを画面表示用の形式に変換
+      menus = data.map((item) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        allergens: item.allergens || [],
+        soldOut: false, // 現在のAPIには売り切れ情報がないため、デフォルトでfalse
+        energy: item.energy,
+        protein: item.protein,
+        fat: item.fat,
+        carb: item.carb,
+        salt: item.salt,
+        type: item.type,
+      }));
+    } catch (err) {
+      error = err.message;
+      console.error("Failed to fetch menus:", err);
+      // エラー時は空配列を設定
+      menus = [];
+    } finally {
+      loading = false;
+    }
+  }
+
+  // コンポーネントマウント時に初期データを取得
+  onMount(() => {
+    fetchMenus();
+  });
 
   let selectedMenu = null;
 
@@ -99,10 +79,10 @@
     selectedMenu = null;
   }
 
-  //適当に３にしてるけど動的に変更する必要あり
+  // TODO: 実際の売り切れ投稿数を取得して動的に変更する必要がある
   let postCount = 3;
 
-  //１とか１０以上やったらミスやいたずらの可能性があるからこうした
+  // 投稿数に基づいて信頼性を判定（1件または10件以上は信頼性が低い）
   function getReliability(count) {
     if (count === 1 || count >= 10) {
       return "低い";
@@ -134,28 +114,45 @@
     各メニューの詳細情報や、売り切れ情報の送信はタップすることで確認できます。
   </p>
 
-  <div class="menu-grid">
-    {#each menus as menu}
-      <button
-        class="menu-card {menu.soldOut && 'sold-out'}"
-        on:click={() => openModal(menu)}
-      >
-        <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
-          {#if menu.soldOut}
-            <span class="badge red">
-              <Icon icon="ph:x-circle" width="16" />
-              売り切れ
-            </span>
-          {:else}
-            <!-- なんか高さ合わないから空のバッジ入れて調整してる -->
-            <span class="badge" style="visibility: hidden;"> placeholder </span>
-          {/if}
-        </div>
-        <div>{menu.name}</div>
-        <div class="price">￥{menu.price}</div>
-      </button>
-    {/each}
-  </div>
+  {#if loading}
+    <div class="loading">
+      <p>メニューを読み込み中...</p>
+    </div>
+  {:else if error}
+    <div class="error">
+      <p>エラーが発生しました: {error}</p>
+      <button on:click={fetchMenus} class="retry-button">再試行</button>
+    </div>
+  {:else if menus.length === 0}
+    <div class="no-menu">
+      <p>この日のメニューはありません。</p>
+    </div>
+  {:else}
+    <div class="menu-grid">
+      {#each menus as menu}
+        <button
+          class="menu-card {menu.soldOut && 'sold-out'}"
+          on:click={() => openModal(menu)}
+        >
+          <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
+            {#if menu.soldOut}
+              <span class="badge red">
+                <Icon icon="ph:x-circle" width="16" />
+                売り切れ
+              </span>
+            {:else}
+              <!-- レイアウトの高さを統一するための非表示バッジ -->
+              <span class="badge" style="visibility: hidden;">
+                placeholder
+              </span>
+            {/if}
+          </div>
+          <div>{menu.name}</div>
+          <div class="price">￥{menu.price}</div>
+        </button>
+      {/each}
+    </div>
+  {/if}
 </div>
 
 {#if selectedMenu}
@@ -165,7 +162,14 @@
       <p style="font-size: 1.2rem; font-weight: bold;">
         ￥{selectedMenu.price}
       </p>
-      <p><strong>特定アレルゲン:</strong> 小麦、卵、乳</p>
+      <p>
+        <strong>特定アレルゲン:</strong>
+        {#if selectedMenu.allergens && selectedMenu.allergens.length > 0}
+          {selectedMenu.allergens.join("、")}
+        {:else}
+          なし
+        {/if}
+      </p>
       <p><strong>エネルギー:</strong> {selectedMenu.energy}[kcal]</p>
       <p><strong>タンパク質:</strong> {selectedMenu.protein}[g]</p>
       <p><strong>脂質:</strong> {selectedMenu.fat}[g]</p>
@@ -296,5 +300,45 @@
     color: white;
     border-radius: 8px;
     cursor: pointer;
+  }
+
+  .loading,
+  .error,
+  .no-menu {
+    text-align: center;
+    padding: 2rem;
+    margin: 1rem 0;
+    border-radius: 8px;
+  }
+
+  .loading {
+    background: #f8f9fa;
+    color: #666;
+  }
+
+  .error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+
+  .no-menu {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+  }
+
+  .retry-button {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .retry-button:hover {
+    background: #c82333;
   }
 </style>
