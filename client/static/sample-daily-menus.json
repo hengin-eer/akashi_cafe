@@ -1,0 +1,173 @@
+[
+  {
+    "allergens": [
+      "小麦",
+      "乳",
+      "そば",
+      "えび",
+      "かに",
+      "くるみ"
+    ],
+    "carb": 97.5,
+    "energy": 578,
+    "fat": 13.3,
+    "id": "D-0002",
+    "name": "白身魚のフリット レモンソース",
+    "price": 430,
+    "protein": 18.8,
+    "salt": 2.6,
+    "type": "A"
+  },
+  {
+    "allergens": [
+      "小麦",
+      "そば",
+      "えび"
+    ],
+    "carb": 112.2,
+    "energy": 745,
+    "fat": 21.1,
+    "id": "D-0003",
+    "name": "天丼",
+    "price": 380,
+    "protein": 28.7,
+    "salt": 4.2,
+    "type": "B"
+  },
+  {
+    "allergens": [
+      "小麦"
+    ],
+    "carb": 110.8,
+    "energy": 561,
+    "fat": 10.5,
+    "id": "M-0001",
+    "name": "カレーライス(中辛)",
+    "price": 300,
+    "protein": 8.9,
+    "salt": 4.0,
+    "type": "curry"
+  },
+  {
+    "allergens": [
+      "小麦",
+      "卵",
+      "乳"
+    ],
+    "carb": 131.0,
+    "energy": 771,
+    "fat": 22.3,
+    "id": "M-0002",
+    "name": "ポークカツカレー",
+    "price": 380,
+    "protein": 14.5,
+    "salt": 4.8,
+    "type": "curry"
+  },
+  {
+    "allergens": [
+      "小麦",
+      "卵"
+    ],
+    "carb": 105.0,
+    "energy": 701,
+    "fat": 18.4,
+    "id": "M-0003",
+    "name": "親子丼",
+    "price": 350,
+    "protein": 29.3,
+    "salt": 3.3,
+    "type": "bowl"
+  },
+  {
+    "allergens": [
+      "小麦",
+      "卵",
+      "乳"
+    ],
+    "carb": 123.6,
+    "energy": 735,
+    "fat": 18.4,
+    "id": "M-0004",
+    "name": "かつ丼",
+    "price": 350,
+    "protein": 20.6,
+    "salt": 3.7,
+    "type": "bowl"
+  },
+  {
+    "allergens": [
+      "小麦",
+      "卵"
+    ],
+    "carb": 73.5,
+    "energy": 437,
+    "fat": 6.4,
+    "id": "M-0005",
+    "name": "醤油ラーメン",
+    "price": 250,
+    "protein": 17.2,
+    "salt": 7.5,
+    "type": "ramen"
+  },
+  {
+    "allergens": [
+      "小麦",
+      "卵"
+    ],
+    "carb": 76.5,
+    "energy": 476,
+    "fat": 8.0,
+    "id": "M-0006",
+    "name": "とんこつラーメン",
+    "price": 250,
+    "protein": 20.2,
+    "salt": 8.0,
+    "type": "ramen"
+  },
+  {
+    "allergens": [
+      "小麦",
+      "卵"
+    ],
+    "carb": 81.4,
+    "energy": 530,
+    "fat": 11.9,
+    "id": "M-0007",
+    "name": "味噌ラーメン",
+    "price": 250,
+    "protein": 20.0,
+    "salt": 9.4,
+    "type": "ramen"
+  },
+  {
+    "allergens": [
+      "小麦",
+      "卵",
+      "乳",
+      "そば",
+      "えび"
+    ],
+    "carb": 67.3,
+    "energy": 355,
+    "fat": 2.2,
+    "id": "M-0008",
+    "name": "かけうどん・そば",
+    "price": 200,
+    "protein": 13.2,
+    "salt": 4.2,
+    "type": "jp-noodles"
+  },
+  {
+    "allergens": null,
+    "carb": 77.9,
+    "energy": 328,
+    "fat": 0.6,
+    "id": "M-0009",
+    "name": "ライス中(210g)",
+    "price": 120,
+    "protein": 5.3,
+    "salt": 0.0,
+    "type": "rice"
+  }
+]
