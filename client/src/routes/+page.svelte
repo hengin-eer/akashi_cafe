@@ -1,19 +1,16 @@
+<script>
+  const currentMonth = new Date().getMonth() + 1;
+</script>
+
 <header class="header">明石高専 学生食堂システム</header>
 
 <main class="main">
   <section class="card">
-    <h2>5月のメニュー</h2>
+    <!-- TODO: 今月の日付を自動で取得する -->
+    <h2>{currentMonth}月のメニュー</h2>
     <p>日付や値段で1か月のメニューが絞り込める！</p>
     <button>
       <a href="/menu"> メニューの日付を選択する </a>
-    </button>
-  </section>
-
-  <section class="card">
-    <h2>本日のお品書き</h2>
-    <p>メニュー情報、最新の売り切れ状況を今すぐチェック！</p>
-    <button>
-      <a href="/menu?today">今日のメニュー</a>
     </button>
   </section>
 
