@@ -26,11 +26,49 @@
   let menus = [];
   let loading = false;
   let error = null;
+  let restaurantStatus = "open"; // "open", "closed", "error"
+
+  // 日付から曜日を取得
+  function getDayOfWeek(dateString) {
+    const date = new Date(dateString);
+    const days = ["日", "月", "火", "水", "木", "金", "土"];
+    return days[date.getDay()];
+  }
+
+  // 土日判定
+  function isWeekend(dateString) {
+    const date = new Date(dateString);
+    const dayOfWeek = date.getDay();
+    return dayOfWeek === 0 || dayOfWeek === 6; // 0=日曜日, 6=土曜日
+  }
+
+  // 祝日判定（簡易版 - 実際にはより詳細な祝日データが必要）
+  function isHoliday(dateString) {
+    // 今回は簡易的に祝日判定を行います
+    // 実際のプロダクションでは祝日APIや祝日ライブラリを使用することを推奨
+    const date = new Date(dateString);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+
+    // 一部の固定祝日の例
+    const holidays = [
+      { month: 1, day: 1 }, // 元日
+      { month: 5, day: 3 }, // 憲法記念日
+      { month: 5, day: 4 }, // みどりの日
+      { month: 5, day: 5 }, // こどもの日
+      { month: 12, day: 23 }, // 天皇誕生日
+    ];
+
+    return holidays.some(
+      (holiday) => holiday.month === month && holiday.day === day,
+    );
+  }
 
   // バックエンドAPIからメニューデータを取得
   async function fetchMenus() {
     loading = true;
     error = null;
+    restaurantStatus = "open";
 
     try {
       const response = await fetch(`${API_BASE_URL}/menu/${selectedDate}`);
@@ -40,22 +78,61 @@
 
       const data = await response.json();
 
-      // APIレスポンスを画面表示用の形式に変換
-      menus = data.map((item) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        allergens: item.allergens || [],
-        soldOut: false, // 現在のAPIには売り切れ情報がないため、デフォルトでfalse
-        energy: item.energy,
-        protein: item.protein,
-        fat: item.fat,
-        carb: item.carb,
-        salt: item.salt,
-        type: item.type,
-      }));
+      // エラーレスポンスをチェック
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // 新しいAPIレスポンス形式をチェック
+      if (data.status) {
+        // 新しい形式: {status: "open/closed", message: "...", menus: [...]}
+        if (data.status === "closed") {
+          restaurantStatus = "closed";
+          menus = [];
+          return;
+        }
+
+        restaurantStatus = "open";
+        const menusData = data.menus || [];
+
+        // APIレスポンスを画面表示用の形式に変換
+        menus = menusData.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          allergens: item.allergens || [],
+          soldOut: false, // 現在のAPIには売り切れ情報がないため、デフォルトでfalse
+          energy: item.energy,
+          protein: item.protein,
+          fat: item.fat,
+          carb: item.carb,
+          salt: item.salt,
+          type: item.type,
+        }));
+      } else {
+        // 古い形式: 直接配列が返される場合
+        if (Array.isArray(data)) {
+          restaurantStatus = "open";
+          menus = data.map((item) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            allergens: item.allergens || [],
+            soldOut: false,
+            energy: item.energy,
+            protein: item.protein,
+            fat: item.fat,
+            carb: item.carb,
+            salt: item.salt,
+            type: item.type,
+          }));
+        } else {
+          throw new Error("予期しないレスポンス形式です");
+        }
+      }
     } catch (err) {
       error = err.message;
+      restaurantStatus = "error";
       console.error("Failed to fetch menus:", err);
       // エラー時は空配列を設定
       menus = [];
@@ -118,10 +195,23 @@
     <div class="loading">
       <p>メニューを読み込み中...</p>
     </div>
-  {:else if error}
+  {:else if restaurantStatus === "error"}
     <div class="error">
       <p>エラーが発生しました: {error}</p>
       <button on:click={fetchMenus} class="retry-button">再試行</button>
+    </div>
+  {:else if restaurantStatus === "closed"}
+    <div class="closed-day">
+      {#if isWeekend(selectedDate)}
+        <p>{getDayOfWeek(selectedDate)}曜日は</p>
+        <p>お休みしています</p>
+      {:else if isHoliday(selectedDate)}
+        <p>祝日なので</p>
+        <p>お休みしています</p>
+      {:else}
+        <p>本日は</p>
+        <p>お休みしています</p>
+      {/if}
     </div>
   {:else if menus.length === 0}
     <div class="no-menu">
@@ -304,7 +394,8 @@
 
   .loading,
   .error,
-  .no-menu {
+  .no-menu,
+  .closed-day {
     text-align: center;
     padding: 2rem;
     margin: 1rem 0;
@@ -326,6 +417,22 @@
     background: #d1ecf1;
     color: #0c5460;
     border: 1px solid #bee5eb;
+  }
+
+  .closed-day {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+  }
+
+  .closed-day p {
+    margin: 0.5rem 0;
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+
+  .closed-day p:first-child {
+    font-size: 1.4rem;
   }
 
   .retry-button {
