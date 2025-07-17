@@ -28,6 +28,12 @@
   let deletingId = null;
   let deleteConfirm = null;
 
+  // 複数選択・一括削除
+  let selectedMenus = new Set();
+  let selectAll = false;
+  let bulkDeleting = false;
+  let bulkDeleteMode = "selected"; // "selected" or "filtered"
+
   // メニュー一覧を取得
   async function fetchMenus(page = 1) {
     loading = true;
@@ -144,6 +150,110 @@
     });
   }
 
+  // 複数選択機能
+  function toggleSelectAll() {
+    if (selectAll) {
+      selectedMenus.clear();
+    } else {
+      menus.forEach((menu) => selectedMenus.add(menu.id));
+    }
+    selectedMenus = selectedMenus; // リアクティブ更新
+    selectAll = !selectAll;
+  }
+
+  function toggleSelectMenu(menuId) {
+    if (selectedMenus.has(menuId)) {
+      selectedMenus.delete(menuId);
+    } else {
+      selectedMenus.add(menuId);
+    }
+    selectedMenus = selectedMenus; // リアクティブ更新
+
+    // 全選択状態の更新
+    selectAll = selectedMenus.size === menus.length && menus.length > 0;
+  }
+
+  // フィルター条件に合致するすべてのレコードを削除
+  async function deleteByFilters() {
+    if (bulkDeleting) return;
+
+    bulkDeleting = true;
+    bulkDeleteMode = "filtered";
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/menu/delete/bulk`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          filters: {
+            date_from: filters.date_from || undefined,
+            date_to: filters.date_to || undefined,
+            type: filters.type || undefined,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // 削除成功：リストを再取得
+        await fetchMenus(1); // 1ページ目から再取得
+        selectedMenus.clear();
+        selectedMenus = selectedMenus;
+        selectAll = false;
+      } else {
+        error = data.error || "一括削除に失敗しました";
+      }
+    } catch (err) {
+      error = `一括削除処理中にエラーが発生しました: ${err.message}`;
+      console.error("Bulk delete error:", err);
+    } finally {
+      bulkDeleting = false;
+    }
+  }
+
+  // 選択したレコードを削除
+  async function deleteSelectedMenus() {
+    if (bulkDeleting || selectedMenus.size === 0) return;
+
+    bulkDeleting = true;
+    bulkDeleteMode = "selected";
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/menu/delete/bulk`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          menu_ids: Array.from(selectedMenus),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // 削除成功：リストを再取得
+        await fetchMenus(pagination.page);
+        selectedMenus.clear();
+        selectedMenus = selectedMenus;
+        selectAll = false;
+      } else {
+        error = data.error || "選択削除に失敗しました";
+      }
+    } catch (err) {
+      error = `選択削除処理中にエラーが発生しました: ${err.message}`;
+      console.error("Selected delete error:", err);
+    } finally {
+      bulkDeleting = false;
+    }
+  }
+
+  // フィルターが有効かどうかチェック
+  $: hasFilters = filters.date_from || filters.date_to || filters.type;
+
   // 初期データ読み込み
   onMount(() => {
     fetchMenus();
@@ -195,6 +305,23 @@
           <Icon icon="ph:x" width="16" />
           リセット
         </button>
+
+        <!-- フィルター条件に合致するすべてのレコードを削除 -->
+        {#if hasFilters}
+          <button
+            class="bulk-delete-button filter-delete"
+            on:click={deleteByFilters}
+            disabled={bulkDeleting}
+          >
+            {#if bulkDeleting && bulkDeleteMode === "filtered"}
+              <Icon icon="ph:spinner" width="16" class="spinning" />
+              削除中...
+            {:else}
+              <Icon icon="ph:trash" width="16" />
+              フィルター条件で削除
+            {/if}
+          </button>
+        {/if}
       </div>
     </div>
   </div>
@@ -224,10 +351,41 @@
         <p>メニューが見つかりません</p>
       </div>
     {:else}
+      <!-- 選択削除コントロール -->
+      {#if selectedMenus.size > 0}
+        <div class="selection-controls">
+          <div class="selection-info">
+            <Icon icon="ph:check-square" width="20" />
+            <span>{selectedMenus.size}件選択中</span>
+          </div>
+          <button
+            class="bulk-delete-button selected-delete"
+            on:click={deleteSelectedMenus}
+            disabled={bulkDeleting}
+          >
+            {#if bulkDeleting && bulkDeleteMode === "selected"}
+              <Icon icon="ph:spinner" width="16" class="spinning" />
+              削除中...
+            {:else}
+              <Icon icon="ph:trash" width="16" />
+              選択した項目を削除
+            {/if}
+          </button>
+        </div>
+      {/if}
+
       <div class="table-container">
         <table class="menu-table">
           <thead>
             <tr>
+              <th class="checkbox-column">
+                <input
+                  type="checkbox"
+                  bind:checked={selectAll}
+                  on:change={toggleSelectAll}
+                  class="select-checkbox"
+                />
+              </th>
               <th>日付</th>
               <th>タイプ</th>
               <th>メニュー名</th>
@@ -239,7 +397,15 @@
           </thead>
           <tbody>
             {#each menus as menu}
-              <tr>
+              <tr class:selected={selectedMenus.has(menu.id)}>
+                <td class="checkbox-column">
+                  <input
+                    type="checkbox"
+                    checked={selectedMenus.has(menu.id)}
+                    on:change={() => toggleSelectMenu(menu.id)}
+                    class="select-checkbox"
+                  />
+                </td>
                 <td>{formatDate(menu.date)}</td>
                 <td>
                   <span class="type-badge type-{menu.type.toLowerCase()}">
@@ -444,6 +610,81 @@
 
   .reset-button:hover {
     background: #545b62;
+  }
+
+  /* 一括削除ボタン */
+  .bulk-delete-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+
+  .bulk-delete-button.filter-delete {
+    background: #dc3545;
+    color: white;
+  }
+
+  .bulk-delete-button.filter-delete:hover:not(:disabled) {
+    background: #c82333;
+  }
+
+  .bulk-delete-button.selected-delete {
+    background: #dc3545;
+    color: white;
+  }
+
+  .bulk-delete-button.selected-delete:hover:not(:disabled) {
+    background: #c82333;
+  }
+
+  .bulk-delete-button:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+  }
+
+  /* 選択コントロール */
+  .selection-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: #e3f2fd;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .selection-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: #1976d2;
+  }
+
+  /* チェックボックス */
+  .checkbox-column {
+    width: 40px;
+    text-align: center;
+  }
+
+  .select-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
+  .menu-table tbody tr.selected {
+    background: #e3f2fd;
+  }
+
+  .menu-table tbody tr.selected:hover {
+    background: #bbdefb;
   }
 
   /* テーブルセクション */

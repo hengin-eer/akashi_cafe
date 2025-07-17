@@ -454,6 +454,145 @@ def create_app():
         except Exception as e:
             return jsonify({"error": f"データベース接続エラー: {str(e)}"}), 500
 
+    @app.route("/admin/menu/delete/bulk", methods=["DELETE"])
+    def delete_multiple_menus():
+        """
+        複数の日替わりメニューを一括削除するエンドポイント
+        リクエストボディ:
+        - menu_ids: 削除するメニューIDの配列
+        - filters: フィルター条件（オプション）
+          - date_from: 開始日付
+          - date_to: 終了日付
+          - type: メニュータイプ
+        """
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({"error": "リクエストボディが必要です"}), 400
+
+            menu_ids = data.get("menu_ids", [])
+            filters = data.get("filters", {})
+
+            conn = psycopg2.connect(**db_config)
+            cursor = conn.cursor()
+
+            try:
+                deleted_count = 0
+                errors = []
+
+                if menu_ids:
+                    # 指定されたIDのメニューを削除
+                    for menu_id in menu_ids:
+                        try:
+                            # メニューが存在するかチェック
+                            check_sql = "SELECT id FROM menu WHERE id = %s"
+                            cursor.execute(check_sql, [menu_id])
+                            existing_menu = cursor.fetchone()
+
+                            if not existing_menu:
+                                errors.append(
+                                    f"メニューID '{menu_id}' が見つかりません"
+                                )
+                                continue
+
+                            # メニューを削除
+                            delete_sql = "DELETE FROM menu WHERE id = %s"
+                            cursor.execute(delete_sql, [menu_id])
+                            deleted_count += cursor.rowcount
+
+                        except Exception as e:
+                            errors.append(
+                                f"メニューID '{menu_id}' の削除中にエラーが発生: {str(e)}"
+                            )
+                            continue
+
+                elif filters:
+                    # フィルター条件に基づいて削除
+                    where_conditions = []
+                    params = []
+
+                    date_from = filters.get("date_from")
+                    date_to = filters.get("date_to")
+                    menu_type = filters.get("type")
+
+                    if date_from:
+                        where_conditions.append("date >= %s")
+                        params.append(date_from)
+
+                    if date_to:
+                        where_conditions.append("date <= %s")
+                        params.append(date_to)
+
+                    if menu_type and menu_type in ["A", "B"]:
+                        where_conditions.append("type = %s::menu_type")
+                        params.append(menu_type)
+
+                    if not where_conditions:
+                        return jsonify({"error": "削除条件が指定されていません"}), 400
+
+                    where_clause = "WHERE " + " AND ".join(where_conditions)
+
+                    # 削除対象のメニュー数を事前に取得
+                    count_sql = f"SELECT COUNT(*) FROM menu {where_clause}"
+                    cursor.execute(count_sql, params)
+                    target_count = cursor.fetchone()[0]
+
+                    if target_count == 0:
+                        return (
+                            jsonify(
+                                {
+                                    "message": "削除対象のメニューが見つかりません",
+                                    "deleted_count": 0,
+                                }
+                            ),
+                            200,
+                        )
+
+                    # 削除実行
+                    delete_sql = f"DELETE FROM menu {where_clause}"
+                    cursor.execute(delete_sql, params)
+                    deleted_count = cursor.rowcount
+
+                else:
+                    return (
+                        jsonify(
+                            {
+                                "error": "削除するメニューIDまたはフィルター条件を指定してください"
+                            }
+                        ),
+                        400,
+                    )
+
+                conn.commit()
+
+                response_data = {
+                    "message": f"{deleted_count} 件のメニューを削除しました",
+                    "deleted_count": deleted_count,
+                }
+
+                if errors:
+                    response_data["errors"] = errors
+
+                return jsonify(response_data), 200
+
+            except Exception as e:
+                conn.rollback()
+                return (
+                    jsonify(
+                        {"error": f"一括削除処理中にエラーが発生しました: {str(e)}"}
+                    ),
+                    500,
+                )
+            finally:
+                cursor.close()
+                conn.close()
+
+        except Exception as e:
+            return (
+                jsonify({"error": f"リクエスト処理中にエラーが発生しました: {str(e)}"}),
+                500,
+            )
+
     @app.route("/admin/menu/list", methods=["GET"])
     def list_daily_menus():
         """
