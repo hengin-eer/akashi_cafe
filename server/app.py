@@ -402,4 +402,175 @@ def create_app():
                 500,
             )
 
+    @app.route("/admin/menu/delete/<menu_id>", methods=["DELETE"])
+    def delete_daily_menu(menu_id):
+        """
+        指定されたIDの日替わりメニューを削除するエンドポイント
+        """
+        try:
+            conn = psycopg2.connect(**db_config)
+            cursor = conn.cursor()
+
+            try:
+                # メニューが存在するかチェック
+                check_sql = "SELECT id FROM menu WHERE id = %s"
+                cursor.execute(check_sql, [menu_id])
+                existing_menu = cursor.fetchone()
+
+                if not existing_menu:
+                    return (
+                        jsonify({"error": f"メニューID '{menu_id}' が見つかりません"}),
+                        404,
+                    )
+
+                # メニューを削除
+                delete_sql = "DELETE FROM menu WHERE id = %s"
+                cursor.execute(delete_sql, [menu_id])
+
+                if cursor.rowcount == 0:
+                    return jsonify({"error": "削除に失敗しました"}), 500
+
+                conn.commit()
+                return (
+                    jsonify(
+                        {
+                            "message": f"メニューID '{menu_id}' を削除しました",
+                            "deleted_id": menu_id,
+                        }
+                    ),
+                    200,
+                )
+
+            except Exception as e:
+                conn.rollback()
+                return (
+                    jsonify({"error": f"削除処理中にエラーが発生しました: {str(e)}"}),
+                    500,
+                )
+            finally:
+                cursor.close()
+                conn.close()
+
+        except Exception as e:
+            return jsonify({"error": f"データベース接続エラー: {str(e)}"}), 500
+
+    @app.route("/admin/menu/list", methods=["GET"])
+    def list_daily_menus():
+        """
+        日替わりメニューの一覧を取得するエンドポイント
+        クエリパラメータ:
+        - page: ページ番号（デフォルト: 1）
+        - limit: 1ページあたりの件数（デフォルト: 50）
+        - date_from: 開始日付（YYYY-MM-DD形式）
+        - date_to: 終了日付（YYYY-MM-DD形式）
+        - type: メニュータイプ（A または B）
+        """
+        try:
+            # クエリパラメータの取得
+            page = int(request.args.get("page", 1))
+            limit = int(request.args.get("limit", 50))
+            date_from = request.args.get("date_from")
+            date_to = request.args.get("date_to")
+            menu_type = request.args.get("type")
+
+            # バリデーション
+            if page < 1:
+                page = 1
+            if limit < 1 or limit > 100:
+                limit = 50
+
+            offset = (page - 1) * limit
+
+            conn = psycopg2.connect(**db_config)
+            cursor = conn.cursor()
+
+            try:
+                # WHERE句の構築
+                where_conditions = []
+                params = []
+
+                if date_from:
+                    where_conditions.append("date >= %s")
+                    params.append(date_from)
+
+                if date_to:
+                    where_conditions.append("date <= %s")
+                    params.append(date_to)
+
+                if menu_type and menu_type in ["A", "B"]:
+                    where_conditions.append("type = %s::menu_type")
+                    params.append(menu_type)
+
+                where_clause = ""
+                if where_conditions:
+                    where_clause = "WHERE " + " AND ".join(where_conditions)
+
+                # 総件数を取得
+                count_sql = f"SELECT COUNT(*) FROM menu {where_clause}"
+                cursor.execute(count_sql, params)
+                total_count = cursor.fetchone()[0]
+
+                # メニューリストを取得
+                list_sql = f"""
+                SELECT id, date, type, name, price, energy, protein, fat, carb, salt, allergens
+                FROM menu
+                {where_clause}
+                ORDER BY date DESC, type ASC
+                LIMIT %s OFFSET %s
+                """
+                cursor.execute(list_sql, params + [limit, offset])
+                menu_items = cursor.fetchall()
+
+                menu_list = [
+                    {
+                        "id": item[0],
+                        "date": item[1].isoformat() if item[1] else None,
+                        "type": item[2],
+                        "name": item[3],
+                        "price": item[4],
+                        "energy": item[5],
+                        "protein": float(item[6]),
+                        "fat": float(item[7]),
+                        "carb": float(item[8]),
+                        "salt": float(item[9]),
+                        "allergens": parse_pg_enum_array(item[10]) if item[10] else [],
+                    }
+                    for item in menu_items
+                ]
+
+                # ページネーション情報
+                total_pages = (total_count + limit - 1) // limit
+
+                return (
+                    jsonify(
+                        {
+                            "menus": menu_list,
+                            "pagination": {
+                                "page": page,
+                                "limit": limit,
+                                "total_count": total_count,
+                                "total_pages": total_pages,
+                                "has_next": page < total_pages,
+                                "has_prev": page > 1,
+                            },
+                        }
+                    ),
+                    200,
+                )
+
+            except Exception as e:
+                return (
+                    jsonify({"error": f"データ取得中にエラーが発生しました: {str(e)}"}),
+                    500,
+                )
+            finally:
+                cursor.close()
+                conn.close()
+
+        except Exception as e:
+            return (
+                jsonify({"error": f"リクエスト処理中にエラーが発生しました: {str(e)}"}),
+                500,
+            )
+
     return app
