@@ -26,7 +26,7 @@
     Googleで続ける
   </div>
 
-  <a class="admin-link" href="/login/admin">管理者ページはこちら</a>
+  <a class="admin-link" href="/admin">管理者ページはこちら</a>
 </div>
 
 <style>
