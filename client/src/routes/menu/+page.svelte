@@ -22,7 +22,7 @@
   const thisMonth = Number(monthStr);
 
   // APIベースURL
-  const API_BASE_URL = "http://localhost:8000";
+  const API_BASE_URL = "http://localhost:8084";
 
   let menus = [];
   let loading = false;
