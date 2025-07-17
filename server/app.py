@@ -1,8 +1,11 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import psycopg2
+import csv
+import io
 from pathlib import Path
 from flask_cors import CORS
 from lib.parse_pg_enum_array import parse_pg_enum_array
+from datetime import datetime
 
 
 def create_app():
@@ -182,5 +185,221 @@ def create_app():
         finally:
             cursor.close()
             conn.close()
+
+    @app.route("/admin/menu/upload", methods=["POST"])
+    def upload_daily_menu_csv():
+        """
+        CSVファイルをアップロードして日替わりメニューをデータベースに追加するエンドポイント
+
+        CSVフォーマット:
+        id,date,type,name,price,energy,protein,fat,carb,salt,allergens
+
+        例:
+        D-0001,2025-07-01,A,白身魚のフリット レモンソース,430,578,18.8,13.3,97.5,2.6,"小麦,乳,そば,えび,かに,くるみ"
+        """
+        try:
+            # CSVファイルの取得
+            if "file" not in request.files:
+                return jsonify({"error": "CSVファイルが見つかりません"}), 400
+
+            file = request.files["file"]
+            if file.filename == "":
+                return jsonify({"error": "ファイルが選択されていません"}), 400
+
+            if not file.filename.lower().endswith(".csv"):
+                return jsonify({"error": "CSVファイルのみアップロード可能です"}), 400
+
+            # CSVファイルの読み込み
+            stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
+            csv_reader = csv.DictReader(stream)
+
+            # バリデーション用の必要カラム
+            required_columns = [
+                "id",
+                "date",
+                "type",
+                "name",
+                "price",
+                "energy",
+                "protein",
+                "fat",
+                "carb",
+                "salt",
+                "allergens",
+            ]
+
+            # CSVヘッダーのチェック
+            if not all(col in csv_reader.fieldnames for col in required_columns):
+                missing_cols = [
+                    col for col in required_columns if col not in csv_reader.fieldnames
+                ]
+                return (
+                    jsonify({"error": f"必要なカラムが不足しています: {missing_cols}"}),
+                    400,
+                )
+
+            # データベース接続
+            conn = psycopg2.connect(**db_config)
+            cursor = conn.cursor()
+
+            inserted_count = 0
+            errors = []
+
+            try:
+                for row_num, row in enumerate(
+                    csv_reader, start=2
+                ):  # ヘッダー行を除いて2行目から開始
+                    try:
+                        # データの前処理
+                        menu_id = row["id"].strip()
+                        date = row["date"].strip()
+                        menu_type = row["type"].strip()
+                        name = row["name"].strip()
+                        price = int(row["price"].strip())
+                        energy = int(row["energy"].strip())
+                        protein = float(row["protein"].strip())
+                        fat = float(row["fat"].strip())
+                        carb = float(row["carb"].strip())
+                        salt = float(row["salt"].strip())
+
+                        # アレルゲンの処理（カンマ区切りの文字列をリストに変換）
+                        allergens_str = row["allergens"].strip()
+                        if allergens_str:
+                            allergens_list = [
+                                allergen.strip()
+                                for allergen in allergens_str.split(",")
+                            ]
+                        else:
+                            allergens_list = []
+
+                        # 日付フォーマットのバリデーション
+                        try:
+                            datetime.strptime(date, "%Y-%m-%d")
+                        except ValueError:
+                            errors.append(
+                                f"行 {row_num}: 日付フォーマットが正しくありません (YYYY-MM-DD形式で入力してください): {date}"
+                            )
+                            continue
+
+                        # メニュータイプのバリデーション
+                        if menu_type not in ["A", "B"]:
+                            errors.append(
+                                f"行 {row_num}: メニュータイプは 'A' または 'B' である必要があります: {menu_type}"
+                            )
+                            continue
+
+                        # アレルゲンのバリデーション
+                        valid_allergens = [
+                            "小麦",
+                            "卵",
+                            "乳",
+                            "そば",
+                            "落花生",
+                            "えび",
+                            "かに",
+                            "くるみ",
+                        ]
+                        invalid_allergens = [
+                            a for a in allergens_list if a not in valid_allergens
+                        ]
+                        if invalid_allergens:
+                            errors.append(
+                                f"行 {row_num}: 無効なアレルゲンが含まれています: {invalid_allergens}"
+                            )
+                            continue
+
+                        # データベースへの挿入
+                        insert_sql = """
+                        INSERT INTO menu (id, date, type, name, price, energy, protein, fat, carb, salt, allergens)
+                        VALUES (%s, %s, %s::menu_type, %s, %s, %s, %s, %s, %s, %s, %s::menu_allergens[])
+                        """
+                        cursor.execute(
+                            insert_sql,
+                            [
+                                menu_id,
+                                date,
+                                menu_type,
+                                name,
+                                price,
+                                energy,
+                                protein,
+                                fat,
+                                carb,
+                                salt,
+                                allergens_list,
+                            ],
+                        )
+                        inserted_count += 1
+
+                    except psycopg2.IntegrityError as e:
+                        if "duplicate key" in str(e):
+                            errors.append(
+                                f"行 {row_num}: メニューID '{menu_id}' は既に存在します"
+                            )
+                        else:
+                            errors.append(
+                                f"行 {row_num}: データベースエラー - {str(e)}"
+                            )
+                        conn.rollback()
+                        continue
+                    except (ValueError, TypeError) as e:
+                        errors.append(f"行 {row_num}: データ型エラー - {str(e)}")
+                        continue
+                    except Exception as e:
+                        errors.append(f"行 {row_num}: 予期しないエラー - {str(e)}")
+                        continue
+
+                # トランザクションのコミット
+                if inserted_count > 0 and not errors:
+                    conn.commit()
+                    return (
+                        jsonify(
+                            {
+                                "message": f"日替わりメニューを {inserted_count} 件追加しました",
+                                "inserted_count": inserted_count,
+                            }
+                        ),
+                        200,
+                    )
+                elif inserted_count > 0 and errors:
+                    conn.commit()
+                    return (
+                        jsonify(
+                            {
+                                "message": f"日替わりメニューを {inserted_count} 件追加しました（一部エラーあり）",
+                                "inserted_count": inserted_count,
+                                "errors": errors,
+                            }
+                        ),
+                        207,
+                    )  # 207 Multi-Status
+                else:
+                    conn.rollback()
+                    return (
+                        jsonify(
+                            {"error": "メニューの追加に失敗しました", "errors": errors}
+                        ),
+                        400,
+                    )
+
+            except Exception as e:
+                conn.rollback()
+                return (
+                    jsonify(
+                        {"error": f"データベース処理中にエラーが発生しました: {str(e)}"}
+                    ),
+                    500,
+                )
+            finally:
+                cursor.close()
+                conn.close()
+
+        except Exception as e:
+            return (
+                jsonify(
+                    {"error": f"CSVファイルの処理中にエラーが発生しました: {str(e)}"}
+                ),
+                500,
+            )
 
     return app
