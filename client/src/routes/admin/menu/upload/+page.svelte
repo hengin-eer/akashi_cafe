@@ -223,8 +223,7 @@
   .container {
     max-width: 800px;
     margin: auto;
-    padding: 1rem;
-    font-family: sans-serif;
+    padding: 0;
   }
 
   h1 {

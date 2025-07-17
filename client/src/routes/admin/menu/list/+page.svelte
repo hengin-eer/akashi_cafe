@@ -601,10 +601,7 @@
 
 <style>
   .container {
-    max-width: 1200px;
-    margin: auto;
-    padding: 1rem;
-    font-family: sans-serif;
+    padding: 0;
   }
 
   h1 {
