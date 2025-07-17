@@ -118,14 +118,14 @@ D-9002,2025-08-01,B,豚丼,380,720,22.0,20.5,105.0,4.1,"小麦,そば,えび"
 ```bash
 curl -X POST \
   -F "file=@sample_daily_menu.csv" \
-  http://localhost:5000/admin/menu/upload
+  http://localhost:8084/admin/menu/upload
 ```
 
 ### Pythonでのテスト
 ```python
 import requests
 
-url = "http://localhost:5000/admin/menu/upload"
+url = "http://localhost:8084/admin/menu/upload"
 files = {"file": open("sample_daily_menu.csv", "rb")}
 response = requests.post(url, files=files)
 print(response.json())
