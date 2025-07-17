@@ -136,40 +136,6 @@
     </div>
   </div>
 
-  <div class="info-section">
-    <h2>アップロード方法</h2>
-    <p>CSVファイルを選択してアップロードボタンを押してください。</p>
-
-    <div class="format-info">
-      <h3>CSVファイルの形式</h3>
-      <p><strong>必須カラム:</strong></p>
-      <div class="columns">
-        <code
-          >id, date, type, name, price, energy, protein, fat, carb, salt,
-          allergens</code
-        >
-      </div>
-
-      <h4>例:</h4>
-      <div class="example">
-        <code>
-          D-9001,2025-08-01,A,鶏の照り焼き,430,650,25.5,18.2,95.8,3.2,"小麦,そば"
-        </code>
-      </div>
-
-      <div class="constraints">
-        <h4>制約:</h4>
-        <ul>
-          <li>日付: YYYY-MM-DD 形式</li>
-          <li>メニュータイプ: A または B</li>
-          <li>価格・エネルギー: 整数</li>
-          <li>栄養成分: 小数点可能</li>
-          <li>アレルゲン: 小麦,卵,乳,そば,落花生,えび,かに,くるみ</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
   <!-- 結果表示 -->
   {#if error}
     <div class="result error">
@@ -217,6 +183,40 @@
       {/if}
     </div>
   {/if}
+
+  <div class="info-section">
+    <h2>アップロード方法</h2>
+    <p>CSVファイルを選択してアップロードボタンを押してください。</p>
+
+    <div class="format-info">
+      <h3>CSVファイルの形式</h3>
+      <p><strong>必須カラム:</strong></p>
+      <div class="columns">
+        <code
+          >id, date, type, name, price, energy, protein, fat, carb, salt,
+          allergens</code
+        >
+      </div>
+
+      <h4>例:</h4>
+      <div class="example">
+        <code>
+          D-9001,2025-08-01,A,鶏の照り焼き,430,650,25.5,18.2,95.8,3.2,"小麦,そば"
+        </code>
+      </div>
+
+      <div class="constraints">
+        <h4>制約:</h4>
+        <ul>
+          <li>日付: YYYY-MM-DD 形式</li>
+          <li>メニュータイプ: A または B</li>
+          <li>価格・エネルギー: 整数</li>
+          <li>栄養成分: 小数点可能</li>
+          <li>アレルゲン: 小麦,卵,乳,そば,落花生,えび,かに,くるみ</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>
