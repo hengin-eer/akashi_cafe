@@ -27,6 +27,7 @@
   // 削除処理
   let deletingId = null;
   let deleteConfirm = null;
+  let bulkDeleteConfirm = null; // 一括削除確認用
 
   // 複数選択・一括削除
   let selectedMenus = new Set();
@@ -109,6 +110,15 @@
 
   function cancelDelete() {
     deleteConfirm = null;
+  }
+
+  // 一括削除確認ダイアログ
+  function confirmBulkDelete(mode) {
+    bulkDeleteConfirm = { mode };
+  }
+
+  function cancelBulkDelete() {
+    bulkDeleteConfirm = null;
   }
 
   // ページ変更
@@ -310,7 +320,7 @@
         {#if hasFilters}
           <button
             class="bulk-delete-button filter-delete"
-            on:click={deleteByFilters}
+            on:click={() => confirmBulkDelete("filtered")}
             disabled={bulkDeleting}
           >
             {#if bulkDeleting && bulkDeleteMode === "filtered"}
@@ -360,7 +370,7 @@
           </div>
           <button
             class="bulk-delete-button selected-delete"
-            on:click={deleteSelectedMenus}
+            on:click={() => confirmBulkDelete("selected")}
             disabled={bulkDeleting}
           >
             {#if bulkDeleting && bulkDeleteMode === "selected"}
@@ -505,6 +515,78 @@
           disabled={deletingId}
         >
           {#if deletingId}
+            <Icon icon="ph:spinner" width="16" class="spinning" />
+            削除中...
+          {:else}
+            <Icon icon="ph:trash" width="16" />
+            削除する
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- 一括削除確認モーダル -->
+{#if bulkDeleteConfirm}
+  <div class="modal-overlay" on:click={cancelBulkDelete}>
+    <div class="modal" on:click|stopPropagation>
+      <h3>一括削除の確認</h3>
+      <div class="confirm-content">
+        {#if bulkDeleteConfirm.mode === "filtered"}
+          <p>
+            <strong
+              >フィルター条件に合致するすべてのメニューを削除してもよろしいですか？</strong
+            >
+          </p>
+          <div class="menu-info">
+            <p><strong>削除対象:</strong></p>
+            <ul>
+              {#if filters.date_from}<li>
+                  開始日: {formatDate(filters.date_from)}
+                </li>{/if}
+              {#if filters.date_to}<li>
+                  終了日: {formatDate(filters.date_to)}
+                </li>{/if}
+              {#if filters.type}<li>
+                  メニュータイプ: {filters.type}セット
+                </li>{/if}
+            </ul>
+            <p>
+              <strong>注意:</strong> 現在のページに表示されているメニューだけでなく、フィルター条件に合致するすべてのメニューが削除されます。
+            </p>
+          </div>
+        {:else if bulkDeleteConfirm.mode === "selected"}
+          <p>
+            <strong
+              >選択した {selectedMenus.size} 件のメニューを削除してもよろしいですか？</strong
+            >
+          </p>
+          <div class="menu-info">
+            <p><strong>削除対象メニューID:</strong></p>
+            <p class="selected-ids">{Array.from(selectedMenus).join(", ")}</p>
+          </div>
+        {/if}
+        <p class="warning">この操作は取り消すことができません。</p>
+      </div>
+      <div class="modal-buttons">
+        <button class="cancel-button" on:click={cancelBulkDelete}>
+          <Icon icon="ph:x" width="16" />
+          キャンセル
+        </button>
+        <button
+          class="confirm-delete-button"
+          on:click={() => {
+            if (bulkDeleteConfirm.mode === "filtered") {
+              deleteByFilters();
+            } else {
+              deleteSelectedMenus();
+            }
+            bulkDeleteConfirm = null;
+          }}
+          disabled={bulkDeleting}
+        >
+          {#if bulkDeleting}
             <Icon icon="ph:spinner" width="16" class="spinning" />
             削除中...
           {:else}
@@ -963,6 +1045,28 @@
   .confirm-delete-button:disabled {
     background: #6c757d;
     cursor: not-allowed;
+  }
+
+  /* 一括削除確認モーダル用スタイル */
+  .menu-info ul {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .menu-info li {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+  }
+
+  .selected-ids {
+    font-family: monospace;
+    font-size: 0.8rem;
+    word-break: break-all;
+    background: #f1f3f4;
+    padding: 0.5rem;
+    border-radius: 4px;
+    max-height: 100px;
+    overflow-y: auto;
   }
 
   .spinning {
