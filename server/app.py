@@ -91,6 +91,8 @@ def create_app():
                     "carb": float(item[7]),
                     "salt": float(item[8]),
                     "allergens": parse_pg_enum_array(item[9]),
+                    "reviewers": item[10] or [],
+                    "unti_reviewers": item[11] or [],
                 }
                 for item in menu_items
             ]
@@ -189,6 +191,74 @@ def create_app():
         finally:
             cursor.close()
             conn.close()
+
+    @app.route("/menu/report", methods=["POST"])
+    def report_sold_out():
+        """
+        ユーザーからの売り切れ・在庫あり報告を受け付けるエンドポイント
+        リクエストボディ:
+        - menu_id: メニューID
+        - user_id: ユーザーID (学籍番号)
+        - report_type: 'sold_out' または 'available'
+        """
+        try:
+            data = request.get_json()
+            if not data or "menu_id" not in data or "user_id" not in data or "report_type" not in data:
+                return jsonify({"error": "menu_id, user_id, and report_type are required"}), 400
+
+            menu_id = data["menu_id"]
+            user_id = data["user_id"]
+            report_type = data["report_type"]
+
+            if report_type not in ['sold_out', 'available']:
+                return jsonify({"error": "Invalid report_type"}), 400
+
+            conn = psycopg2.connect(**db_config)
+            cursor = conn.cursor()
+
+            try:
+                if menu_id.startswith('D-'):
+                    table_name = "daily_menu_soldout"
+                    column_name = "daily_menu_id"
+                elif menu_id.startswith('P-'):
+                    table_name = "permanent_menu_soldout"
+                    column_name = "permanent_menu_id"
+                else:
+                    return jsonify({"error": "Invalid menu_id prefix"}), 400
+
+                # まずレコードが存在するか確認、なければ作成
+                insert_sql = f"""INSERT INTO {table_name} ({column_name}, reviewers, unti_reviewers)
+                                 VALUES (%s, ARRAY[]::varchar[], ARRAY[]::varchar[])
+                                 ON CONFLICT ({column_name}) DO NOTHING"""
+                cursor.execute(insert_sql, [menu_id])
+
+                if report_type == 'sold_out':
+                    # sold_out報告: reviewersに追加、unti_reviewersから削除
+                    update_sql = f"""UPDATE {table_name}
+                                     SET reviewers = array_append(reviewers, %s),
+                                         unti_reviewers = array_remove(unti_reviewers, %s)
+                                     WHERE {column_name} = %s"""
+                else: # report_type == 'available'
+                    # available報告: unti_reviewersに追加、reviewersから削除
+                    update_sql = f"""UPDATE {table_name}
+                                     SET unti_reviewers = array_append(unti_reviewers, %s),
+                                         reviewers = array_remove(reviewers, %s)
+                                     WHERE {column_name} = %s"""
+
+                cursor.execute(update_sql, [user_id, user_id, menu_id])
+
+                conn.commit()
+                return jsonify({"message": "Report received successfully"}), 200
+
+            except Exception as e:
+                conn.rollback()
+                return jsonify({"error": f"Database error: {str(e)}"}), 500
+            finally:
+                cursor.close()
+                conn.close()
+
+        except Exception as e:
+            return jsonify({"error": f"Request processing error: {str(e)}"}), 500
 
     @app.route("/admin/menu/upload", methods=["POST"])
     def upload_daily_menu_csv():

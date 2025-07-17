@@ -75,6 +75,58 @@
   onMount(() => {
     fetchMenus();
   });
+
+  let reportingId = null; // 報告処理中のメニューID
+  const userId = "T00001"; // 仮のユーザーID
+
+  // 売り切れ状態を計算
+  function getSoldOutStatus(menu) {
+    const soldOutCount = menu.reviewers?.length || 0;
+    const availableCount = menu.unti_reviewers?.length || 0;
+
+    if (soldOutCount === 0) {
+      return null; // 売り切れ報告がなければ何も表示しない
+    }
+
+    if (soldOutCount >= 2 || soldOutCount > availableCount) {
+      return "sold-out"; // 赤色状態
+    }
+
+    return "maybe-sold-out"; // 黄色状態
+  }
+
+  // 売り切れ報告を送信
+  async function reportSoldOutStatus(menu, reportType) {
+    if (reportingId) return;
+    reportingId = menu.id;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/menu/report`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          menu_id: menu.id,
+          user_id: userId,
+          report_type: reportType,
+        }),
+      });
+
+      if (response.ok) {
+        // 成功したらメニューを再取得してUIを更新
+        await fetchMenus();
+      } else {
+        const data = await response.json();
+        error = data.error || "報告に失敗しました";
+      }
+    } catch (err) {
+      error = `報告処理中にエラーが発生しました: ${err.message}`;
+      console.error("Report error:", err);
+    } finally {
+      reportingId = null;
+    }
+  }
 </script>
 
 <div class="menu-container">
@@ -136,7 +188,18 @@
     {:else}
       <div class="menu-grid">
         {#each menus as menu}
-          <div class="menu-card">
+          {@const status = getSoldOutStatus(menu)}
+          {@const soldOutCount = menu.reviewers?.length || 0}
+          {@const availableCount = menu.unti_reviewers?.length || 0}
+          {@const totalVotes = soldOutCount + availableCount}
+          <div class="menu-card" class:sold-out={status === 'sold-out'}>
+            <!-- 売り切れオーバーレイ -->
+            {#if status === 'sold-out'}
+              <div class="sold-out-overlay">
+                <span>SOLD OUT</span>
+              </div>
+            {/if}
+
             <!-- メニュータイプバッジ -->
             <div class="menu-type {menu.type.toLowerCase()}">
               {menu.type}セット
@@ -193,6 +256,57 @@
                 <div class="allergen-list">
                   {formatAllergens(menu.allergens)}
                 </div>
+              </div>
+
+              <!-- 売り切れ報告セクション -->
+              {#if status}
+                <div class="sold-out-status {status}">
+                  <div class="status-header">
+                    <Icon
+                      icon={status === 'sold-out'
+                        ? "ph:x-circle-fill"
+                        : "ph:warning-circle-fill"}
+                      width="20"
+                    />
+                    <span class="status-text">
+                      {status === 'sold-out'
+                        ? "売り切れ"
+                        : "売り切れているかも？"}
+                    </span>
+                  </div>
+                  <div class="status-bar">
+                    <div
+                      class="bar-sold-out"
+                      style="width: {totalVotes > 0
+                        ? (soldOutCount / totalVotes) * 100
+                        : 0}%"
+                    ></div>
+                  </div>
+                  <div class="status-votes">
+                    <span>売り切れ報告: {soldOutCount}件</span>
+                    <span>在庫あり報告: {availableCount}件</span>
+                  </div>
+                </div>
+              {/if}
+
+              <!-- 報告ボタン -->
+              <div class="report-buttons">
+                <button
+                  class="report-button sold-out"
+                  on:click={() => reportSoldOutStatus(menu, 'sold_out')}
+                  disabled={reportingId === menu.id}
+                >
+                  <Icon icon="ph:x-circle" width="16" />
+                  売り切れかも？
+                </button>
+                <button
+                  class="report-button available"
+                  on:click={() => reportSoldOutStatus(menu, 'available')}
+                  disabled={reportingId === menu.id}
+                >
+                  <Icon icon="ph:check-circle" width="16" />
+                  まだあるよ
+                </button>
               </div>
             </div>
           </div>
@@ -474,6 +588,96 @@
     padding: 0.75rem;
     color: #dc3545;
     font-weight: 500;
+  }
+
+  /* 売り切れ報告セクション */
+  .sold-out-status {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  .sold-out-status.sold-out {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+  }
+
+  .sold-out-status.maybe-sold-out {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+  }
+
+  .status-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: bold;
+    margin-bottom: 0.75rem;
+  }
+
+  .status-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+
+  .bar-sold-out {
+    height: 100%;
+    background: #dc3545;
+  }
+
+  .status-votes {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+  }
+
+  .report-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .report-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+
+  .report-button.sold-out {
+    background: #ffebee;
+    color: #c62828;
+  }
+
+  .report-button.sold-out:hover:not(:disabled) {
+    background: #ffcdd2;
+  }
+
+  .report-button.available {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .report-button.available:hover:not(:disabled) {
+    background: #c8e6c9;
+  }
+
+  .report-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   /* お知らせセクション */
