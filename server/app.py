@@ -38,12 +38,16 @@ def create_app():
         ]
         return jsonify(dummy_menu)
 
-    @app.route("/menu/<date>")
-    def menu_by_day(date):
+    @app.route("/menu/list")
+    def menu_list():
         """
         日付を指定してその日のメニュー全てを取得するエンドポイント
         営業状態も含めて返す
         """
+        date = request.args.get("date")
+        if not date:
+            return jsonify({"error": "Date parameter is required"}), 400
+
         conn = psycopg2.connect(**db_config)
         cursor = conn.cursor()
         try:
