@@ -1,4 +1,4 @@
-insert into menu (id, date, type, name, price, energy, protein, fat, carb, salt, allergens) values
+INSERT INTO menu (id, date, type, name, price, energy, protein, fat, carb, salt, allergens) VALUES
 ('D-0002', '2025-07-01', 'A'::menu_type, '白身魚のフリット レモンソース', 430, 578, 18.8, 13.3, 97.5, 2.6, ARRAY['小麦', '乳', 'そば', 'えび', 'かに', 'くるみ']::menu_allergens[]),
 ('D-0003', '2025-07-01', 'B'::menu_type, '天丼', 380, 745, 28.7, 21.1, 112.2, 4.2, ARRAY['小麦', 'そば', 'えび']::menu_allergens[]),
 ('D-0004', '2025-07-02', 'A'::menu_type, '照焼きハンバーグ', 430, 611, 21.8, 14.4, 101.5, 4.4, ARRAY['小麦', 'そば', 'えび', 'かに', 'くるみ']::menu_allergens[]),

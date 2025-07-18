@@ -1,4 +1,4 @@
-insert into accounts (id, name) values
+INSERT INTO accounts (id, name) VALUES
 ('B2101', '山田 太郎'),
 ('B2102', '佐藤 花子'),
 ('B2103', '鈴木 一郎'),

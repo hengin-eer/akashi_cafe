@@ -1,0 +1,5 @@
+# Zip file
+*.zip
+
+# local files
+.local*
